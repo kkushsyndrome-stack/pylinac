@@ -427,6 +427,11 @@ This results with the edge leaves now being caught in this case. You may need to
 
 .. image:: images/pf_now_catching_edges.png
 
+Leaves that are detected in some but not all of the pickets are removed from the analysis.
+When this happens, a warning listing the removed leaves is emitted and stored in
+``results_data().warnings``. Removed leaves are not counted as passing or failing, so check
+this warning if leaves you expect to be analyzed are missing from the results.
+
 .. _individual_leaf_positions:
 
 Individual leaf positions & errors

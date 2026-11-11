@@ -22,6 +22,7 @@ import os.path as osp
 import statistics
 import warnings
 import webbrowser
+from collections import Counter
 from collections.abc import Iterable, Sequence
 from functools import cached_property
 from io import BytesIO
@@ -912,24 +913,23 @@ class PicketFence(ResultsDataMixin[PFResult], QuaacMixin):
             )
 
         # drop any leaf rows that don't have the right amount of MLC kisses (i.e. near edge where one is dropped)
-        median_num_leaves = (
-            Enumerable(self.mlc_meas)
-            .group_by(key=lambda m: m.leaf_num)
-            .median(lambda m: len(m))
+        kisses_per_leaf = Counter(m.leaf_num for m in self.mlc_meas)
+        # the upper median is always an actual count; the plain median of an even split
+        # (e.g. 4.5 for 4 and 5 kisses) would match no leaf and drop every leaf
+        expected_kisses = statistics.median_high(kisses_per_leaf.values())
+        removed_leaves = sorted(
+            leaf
+            for leaf, kisses in kisses_per_leaf.items()
+            if kisses != expected_kisses
         )
-        full_leaves = (
-            Enumerable(self.mlc_meas)
-            .group_by(key=lambda m: m.leaf_num)
-            .where(lambda m: len(m) == median_num_leaves)
-            .select_many(lambda m: m)
-            .select(lambda m: m.leaf_num)
-            .distinct()
-            .to_list()
-        )
-        self.mlc_meas = [m for m in self.mlc_meas if m.leaf_num in full_leaves]
-        if any([True for m in self.mlc_meas if m.leaf_num not in full_leaves]):
+        if removed_leaves:
+            self.mlc_meas = [
+                m for m in self.mlc_meas if m.leaf_num not in removed_leaves
+            ]
             warnings.warn(
-                "Some leaves were removed from analysis because they were not detected for all pickets. If some valid leaves are missing try adjusting height_threshold or edge_threshold"
+                "Some leaves were removed from analysis because they were not detected for all pickets. "
+                "If some valid leaves are missing try adjusting height_threshold or edge_threshold. "
+                f"Removed leaves: {removed_leaves}"
             )
 
         # retrospectively create the pickets and update the individual MLC measurements so error can be calculated

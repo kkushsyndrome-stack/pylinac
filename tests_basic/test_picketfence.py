@@ -20,6 +20,7 @@ from pylinac.core.image_generator import (
     AS1200Image,
     FilteredFieldLayer,
     GaussianFilterLayer,
+    PerfectFieldLayer,
     generate_picketfence,
 )
 from pylinac.core.io import TemporaryZipDirectory
@@ -355,6 +356,83 @@ class TestAnalyze(TestCase):
                 "B48",
             ],
         )
+
+
+class TestLeafRemoval(TestCase):
+    """Leaves that are not detected in every picket are removed from the analysis.
+    This must be reported to the user, not done silently."""
+
+    @classmethod
+    def setUpClass(cls):
+        f = tempfile.NamedTemporaryFile(delete=False)
+        f.close()
+        cls.file = f.name
+        generate_picketfence(
+            simulator=AS1200Image(sid=1000),
+            field_layer=PerfectFieldLayer,
+            file_out=cls.file,
+            final_layers=[GaussianFilterLayer(sigma_mm=1)],
+            pickets=5,
+            picket_spacing_mm=40,
+            picket_width_mm=3,
+            orientation=Orientation.UP_DOWN,
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        Path(cls.file).unlink(missing_ok=True)
+
+    @staticmethod
+    def block_picket(pf: PicketFence, picket_offset_mm: float, rows: slice) -> None:
+        """Set the given rows of a picket to background, i.e. the leaves did not open there."""
+        dpmm = pf.image.dpmm
+        center = pf.image.shape[1] / 2 + picket_offset_mm * dpmm
+        cols = slice(int(round(center - 15 * dpmm)), int(round(center + 15 * dpmm)))
+        pf.image.array[rows, cols] = pf.image.array.min()
+
+    def test_closed_leaf_pair_is_reported(self):
+        pf = PicketFence(self.file)
+        # leaf pair 30 stays closed at the central picket
+        idx = pf.mlc.leaves.index(30)
+        center = pf.mlc.centers[idx] * pf.image.dpmm + pf.image.shape[0] / 2
+        half_width = pf.mlc.widths[idx] * pf.image.dpmm / 2
+        self.block_picket(
+            pf,
+            0,
+            slice(int(round(center - half_width)), int(round(center + half_width))),
+        )
+        with self.assertWarnsRegex(
+            UserWarning, r"Some leaves were removed .* Removed leaves: \[30\]"
+        ):
+            pf.analyze()
+        self.assertNotIn(30, {m.leaf_num for m in pf.mlc_meas})
+        self.assertEqual(len({m.leaf_num for m in pf.mlc_meas}), 49)
+        messages = [w["message"] for w in pf.results_data().warnings]
+        self.assertTrue(
+            any("Some leaves were removed" in m and "[30]" in m for m in messages)
+        )
+
+    def test_no_warning_when_all_leaves_are_detected(self):
+        pf = PicketFence(self.file)
+        pf.analyze()
+        self.assertEqual(len({m.leaf_num for m in pf.mlc_meas}), 50)
+        messages = [w["message"] for w in pf.results_data().warnings]
+        self.assertFalse(any("Some leaves were removed" in m for m in messages))
+
+    def test_picket_covering_half_of_the_leaves(self):
+        # half of the leaves are seen in all 5 pickets and half in only 4; the median
+        # number of pickets per leaf was 4.5, which matched no leaf, so every leaf was dropped
+        pf = PicketFence(self.file)
+        self.block_picket(pf, 80, slice(0, pf.image.shape[0] // 2))
+        with self.assertWarnsRegex(UserWarning, "Some leaves were removed"):
+            pf.analyze()
+        self.assertEqual(pf.num_pickets, 5)
+        leaves = {m.leaf_num for m in pf.mlc_meas}
+        self.assertEqual(len(leaves), 25)
+        # the leaves that were kept are the ones seen in every picket
+        for leaf in leaves:
+            self.assertEqual(len([m for m in pf.mlc_meas if m.leaf_num == leaf]), 5)
+        self.assertAlmostEqual(pf.max_error, 0, delta=0.05)
 
 
 class TestBBBasedAnalysis(TestCase):

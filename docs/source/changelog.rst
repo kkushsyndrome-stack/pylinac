@@ -33,6 +33,19 @@ Quart
   Interpolation now preserves pixel order. Previous -700->-200 HU distances may
   decrease when scans are reanalyzed.
 
+Picket Fence
+^^^^^^^^^^^^
+
+* :bdg-warning:`Fixed` Leaves that are detected in some but not all pickets (e.g. edge leaves
+  partly blocked by a jaw, or a leaf pair that stayed closed for one picket) are excluded from
+  the analysis, but the warning meant to report this could never be emitted, so such leaves
+  disappeared from the results silently. The warning is now emitted, lists the removed leaves
+  and appears in ``results_data().warnings``. Removed leaves still do not count as failing
+  leaves, so pass/fail results are unchanged.
+* :bdg-warning:`Fixed` Picket fence images in which exactly half of the analyzed leaves were
+  missing from a picket failed with ``TypeError: expected non-empty vector for x``. The leaves
+  found in every picket are now analyzed and the others are removed with the warning above.
+
 v3.49.0
 -------
 
