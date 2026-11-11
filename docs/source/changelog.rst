@@ -33,6 +33,16 @@ Quart
   Interpolation now preserves pixel order. Previous -700->-200 HU distances may
   decrease when scans are reanalyzed.
 
+CatPhan
+^^^^^^^
+
+* :bdg-warning:`Fixed` ``analyze(expected_hu_values=...)`` overwrote the nominal HU values stored on the
+  HU linearity (CTP404) module class. The custom values were then also used by every later analysis in
+  the same Python session: the same CatPhan analyzed without ``expected_hu_values``, new CatPhan
+  instances, and the CatPhan 503, which shares the CatPhan 504 values. These later analyses reported
+  the wrong nominal values and could report a wrong HU linearity pass/fail. Expected HU values now
+  only apply to the analysis they are passed to.
+
 v3.49.0
 -------
 

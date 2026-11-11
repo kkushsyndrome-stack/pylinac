@@ -450,6 +450,18 @@ class TestCustomHUValues(TestCase):
         self.cbct.analyze(expected_hu_values=None)
         self.assertEqual(self.cbct.ctp404.rois["Air"].nominal_val, -1000)
 
+    def test_override_only_applies_to_that_analysis(self):
+        self.cbct.analyze(expected_hu_values={"Poly": 321})
+        self.assertEqual(self.cbct.ctp404.rois["Poly"].nominal_val, 321)
+        self.assertFalse(self.cbct.ctp404.passed_hu)
+        # a later analysis without overrides uses the nominal values again
+        self.cbct.analyze()
+        self.assertEqual(self.cbct.ctp404.rois["Poly"].nominal_val, -47)
+        self.assertTrue(self.cbct.ctp404.passed_hu)
+        # the nominal values of the module classes are unchanged; the 503 shares them
+        self.assertEqual(CTP404CP504.roi_settings["Poly"]["value"], -47)
+        self.assertEqual(CTP404CP503.roi_settings["Poly"]["value"], -47)
+
 
 class TestPlottingSaving(TestCase):
     @classmethod

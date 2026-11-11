@@ -781,8 +781,15 @@ class CTP404CP504(CatPhanModule):
         ).image
 
     def _replace_hu_values(self):
-        """Possibly replace the HU values in the ROI settings with the expected values if the key is present."""
+        """Possibly replace the HU values in the ROI settings with the expected values if the key is present.
+
+        The settings are copied first so the expected values only apply to this module instance.
+        Otherwise they would overwrite the class-level nominal values used by every later analysis.
+        """
         if self.expected_hu_values is not None:
+            self.roi_settings = {
+                name: dict(settings) for name, settings in self.roi_settings.items()
+            }
             for name, value in self.expected_hu_values.items():
                 if name in self.roi_settings:
                     self.roi_settings[name]["value"] = value
