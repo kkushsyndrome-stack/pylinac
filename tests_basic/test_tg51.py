@@ -70,13 +70,29 @@ class TestFunctions(TestCase):
             delta=0.001,
         )
 
-    @parameterized.expand([(3, 1.72), (5, 2.96), (7, 4.19)])
+    @parameterized.expand([(3, 1.72), (5, 2.96), (7, 4.19), (12, 7.30)])
     def test_dref(self, i50, dref):
         self.assertAlmostEqual(tg51.d_ref(i_50=i50), dref, delta=0.01)
 
-    @parameterized.expand([(3.5, 3.54), (5.5, 5.60), (12, 18.71)])
+    @parameterized.expand(
+        [
+            (3.5, 3.54),
+            (5.5, 5.60),
+            (10, 10.23),
+            (10.5, 10.75),
+            (12, 12.34),
+            (15, 15.52),
+        ]
+    )
     def test_r50(self, i50, r50):
+        # TG-51 Eqns. 16 (I50 <= 10 cm) and 17 (I50 > 10 cm)
         self.assertAlmostEqual(tg51.r_50(i_50=i50), r50, delta=0.01)
+
+    def test_r50_is_continuous_at_10cm(self):
+        # the two TG-51 equations meet at I50 = 10 cm
+        self.assertAlmostEqual(
+            tg51.r_50(i_50=9.999), tg51.r_50(i_50=10.001), delta=0.01
+        )
 
     @parameterized.expand(
         [(0.38 / 0.663, 0.6662), (0.385 / 0.667, 0.6713), (0.527 / 0.793, 0.7819)]

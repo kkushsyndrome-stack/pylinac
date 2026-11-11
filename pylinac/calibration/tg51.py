@@ -910,16 +910,20 @@ def d_ref(*, i_50: float) -> float:
 def r_50(*, i_50: float) -> float:
     """Calculate the R50 depth of an electron beam based on the I50 depth.
 
+    Uses TG-51 Eqns. 16 & 17 (the same as TRS-398 Eqn. 7.1):
+    ``R50 = 1.029 * I50 - 0.06`` for I50 <= 10 cm and
+    ``R50 = 1.059 * I50 - 0.37`` for I50 > 10 cm.
+
     Parameters
     ----------
     i_50 : float
         The value of I50 in cm.
     """
     argue.verify_bounds(i_50, bounds=argue.POSITIVE, message="i50 should be positive")
-    if i_50 < 10:
+    if i_50 <= 10:
         r50 = 1.029 * i_50 - 0.06
     else:
-        r50 = 1.59 * i_50 - 0.37
+        r50 = 1.059 * i_50 - 0.37
     return r50
 
 

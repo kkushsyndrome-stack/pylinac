@@ -59,6 +59,12 @@ class TestFunctions(TestCase):
                 trs398.kq_electron(chamber=model, r_50=r_50), kq, delta=0.001
             )
 
+    @parameterized.expand([(3.5, 3.54, 2.02), (10.5, 10.75, 6.35), (12, 12.34, 7.30)])
+    def test_r_50_and_z_ref(self, i50, r50, zref):
+        # TRS-398 Eqns. 7.1 (R50 from R50,ion) and 7.2 (zref)
+        self.assertAlmostEqual(trs398.r_50(i_50=i50), r50, delta=0.01)
+        self.assertAlmostEqual(trs398.z_ref(i_50=i50), zref, delta=0.01)
+
     @parameterized.expand(
         [
             (15, 101.3, 20, 0.983),

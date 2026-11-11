@@ -33,6 +33,21 @@ Quart
   Interpolation now preserves pixel order. Previous -700->-200 HU distances may
   decrease when scans are reanalyzed.
 
+Calibration
+^^^^^^^^^^^
+
+* :bdg-warning:`Fixed` R50 was calculated as ``1.59 * I50 - 0.37`` instead of
+  ``1.059 * I50 - 0.37`` for I50 of 10 cm or more (TG-51 Eq. 17, TRS-398 Eq. 7.1).
+  This affected :func:`~pylinac.calibration.tg51.r_50` and
+  :func:`~pylinac.calibration.tg51.d_ref`, the TRS-398 ``r_50`` and ``z_ref``
+  functions, and the R50, dref/zref, kQ and dose values of
+  :class:`~pylinac.calibration.tg51.TG51ElectronModern` and
+  :class:`~pylinac.calibration.trs398.TRS398Electron`. Previously reported values
+  change for high-energy electron beams with I50 of 10 cm or more: e.g. for
+  I50 = 10.5 cm, R50 changes from 16.33 to 10.75 cm, the reference depth from
+  9.70 to 6.35 cm, and the dose/MU of a PTW 30013 chamber increases by 1.6%
+  (TRS-398) or 0.5% (TG-51). Beams with I50 below 10 cm are unaffected.
+
 v3.49.0
 -------
 
