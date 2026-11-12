@@ -17,6 +17,7 @@ Features:
 from __future__ import annotations
 
 import abc
+import copy
 import io
 import itertools
 import os
@@ -492,9 +493,16 @@ class CatPhanModule(Slice):
         self._setup_rois()
 
     def _convert_units_in_settings(self) -> None:
-        setting_groups = [
-            getattr(self, attr) for attr in dir(self) if attr.endswith("roi_settings")
-        ]
+        # The settings are class attributes, shared by all instances. The converted values
+        # depend on this analysis (pixel size, roll, adjustments), so they are written to
+        # instance copies. Otherwise later analyses would change the ROI settings of earlier
+        # analyses, including those already reported in ``results_data``.
+        setting_groups = []
+        for attr in dir(self):
+            if attr.endswith("roi_settings"):
+                setting_group = copy.deepcopy(getattr(self, attr))
+                setattr(self, attr, setting_group)
+                setting_groups.append(setting_group)
         for roi_settings in setting_groups:
             for roi, settings in roi_settings.items():
                 if isinstance(settings, dict):

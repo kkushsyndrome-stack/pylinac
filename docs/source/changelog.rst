@@ -33,6 +33,17 @@ Quart
   Interpolation now preserves pixel order. Previous -700->-200 HU distances may
   decrease when scans are reanalyzed.
 
+CatPhan
+^^^^^^^
+
+* :bdg-warning:`Fixed` The ROI settings of an analysis (ROI distances and sizes in pixels and the roll-corrected
+  angles) were written into the settings of the module classes, which all analyses share. A later analysis in the
+  same Python session, e.g. with another pixel size, phantom roll or ROI adjustment, therefore changed the
+  ``roi_settings`` reported by ``results_data()`` for earlier analyses, even in results already obtained. The ROIs
+  and the measured values of each analysis were correct. Each analysis now works on its own copy of the settings
+  and the class-level ``roi_settings`` are no longer modified. This applies to all CT-like analyses (CatPhan, ACR,
+  Quart, Cheese and GE Helios). It also keeps custom ``expected_hu_values`` from being applied to later analyses.
+
 v3.49.0
 -------
 

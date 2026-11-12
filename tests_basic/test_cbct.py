@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import io
 import json
 import os
@@ -22,6 +23,7 @@ from pylinac.core.io import TemporaryZipDirectory
 from pylinac.ct import (
     CTP404CP503,
     CTP404CP504,
+    CTP515,
     CTP528CP503,
     CTP528CP504,
     CatphanResult,
@@ -424,6 +426,27 @@ class TestDemos(TestCase):
     @skip("Demo image not yet defined")
     def test_700(self):
         CatPhan700.run_demo()
+
+
+class TestROISettingsNotShared(TestCase):
+    """The ROI settings of one analysis must not change with later analyses."""
+
+    def test_earlier_results_unchanged_by_later_analysis(self):
+        ct1 = CatPhan504.from_demo_images()
+        ct1.analyze()
+        data1 = ct1.results_data()
+        expected = copy.deepcopy(data1.ctp515.roi_settings)
+        ct2 = CatPhan504.from_demo_images()
+        ct2.analyze(angle_adjustment=10, scaling_factor=1.1, roi_size_factor=0.8)
+        self.assertEqual(data1.ctp515.roi_settings, expected)
+        self.assertEqual(ct1.results_data().ctp515.roi_settings, expected)
+        self.assertNotEqual(ct2.results_data().ctp515.roi_settings, expected)
+
+    def test_class_settings_unchanged_by_analysis(self):
+        nominal = copy.deepcopy((CTP404CP504.roi_settings, CTP515.roi_settings))
+        ct = CatPhan504.from_demo_images()
+        ct.analyze(angle_adjustment=10, scaling_factor=1.1, roi_size_factor=0.8)
+        self.assertEqual((CTP404CP504.roi_settings, CTP515.roi_settings), nominal)
 
 
 class TestCustomHUValues(TestCase):
